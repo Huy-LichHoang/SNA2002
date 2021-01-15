@@ -1,10 +1,11 @@
-import math
-from matplotlib import colors
-from util import *
 import geohash
-import matplotlib.cm as cmx
 import matplotlib as mpl
-import networkx as nx
+import matplotlib.cm as cmx
+from matplotlib import colors
+from collections import deque
+from sklearn.cluster import KMeans
+from metrics import *
+import os
 
 mpl.rcParams['agg.path.chunksize'] = 10000
 
@@ -270,7 +271,7 @@ class PublicTransport(object):
                         degree += weight
                 # Use node centrality
                 elif node_scaling == 'centrality':
-                    degree = centrality[int(node)]
+                    degree = centrality[node]
                 # Use node classification
                 elif node_scaling == 'classification':
                     degree = classification[int(node)]
@@ -339,16 +340,160 @@ if __name__ == "__main__":
         walking_graph.draw_map("Data/Images/Edges/hcm_walking_graph_edges_distance.png", plot_edges=True,
                                edge_scaling='distance_meters')
 
-    if True:
+    if False:
         transit_graph = PublicTransport(TRANSIT_GRAPH)
         transit_graph.draw_map("Data/Images/Nodes/hcm_transit_graph_nodes_degree.png", plot_nodes=True,
-                                  node_scaling='degree')
+                               node_scaling='degree')
         transit_graph.draw_map("Data/Images/Nodes/hcm_transit_graph_nodes_degree_weighted.png", plot_nodes=True,
-                                  node_scaling='degree_weighted')
+                               node_scaling='degree_weighted')
         transit_graph.draw_map("Data/Images/Edges/hcm_transit_graph_edges.png", plot_edges=True)
         transit_graph.draw_map("Data/Images/Edges/hcm_transit_graph_edges_weight.png", plot_edges=True,
-                                  edge_scaling='weight')
+                               edge_scaling='weight')
         transit_graph.draw_map("Data/Images/Edges/hcm_transit_graph_edges_duration.png", plot_edges=True,
-                                  edge_scaling='duration_seconds')
+                               edge_scaling='duration_seconds')
         transit_graph.draw_map("Data/Images/Edges/hcm_transit_graph_edges_distance.png", plot_edges=True,
-                                  edge_scaling='distance_meters')
+                               edge_scaling='distance_meters')
+
+    if False:
+        public_transport = PublicTransport(FULL_GRAPH)
+        transit_graph = PublicTransport(TRANSIT_GRAPH)
+        walking_graph = PublicTransport(WALKING_GRAPH)
+        if False:
+            centrality_full = compute_centrality(public_transport.graph)
+            centrality_transit = compute_centrality(transit_graph.graph)
+            centrality_walking = compute_centrality(walking_graph.graph)
+            public_transport.draw_map("Data/Images/NodeCentrality/hcm_full_graph_node_centrality.png", plot_nodes=True,
+                                      node_scaling='centrality', centrality=centrality_full)
+            transit_graph.draw_map("Data/Images/NodeCentrality/hcm_transit_graph_node_centrality.png", plot_nodes=True,
+                                   node_scaling='centrality', centrality=centrality_transit)
+            walking_graph.draw_map("Data/Images/NodeCentrality/hcm_walking_graph_node_centrality.png", plot_nodes=True,
+                                   node_scaling='centrality', centrality=centrality_walking)
+
+        if False:
+            node_roles = find_node_roles(public_transport.graph, attribute='weight')
+            public_transport.draw_map("Data/Images/NodeClassification/hcm_full_graph_node_classification_weight.png",
+                                      plot_nodes=True, node_scaling='classification', classification=node_roles)
+            node_roles = find_node_roles(public_transport.graph, attribute='duration_seconds')
+            public_transport.draw_map("Data/Images/NodeClassification/hcm_full_graph_node_classification_duration.png",
+                                      plot_nodes=True, node_scaling='classification', classification=node_roles)
+            node_roles = find_node_roles(public_transport.graph, attribute='distance_meters')
+            public_transport.draw_map("Data/Images/NodeClassification/hcm_full_graph_node_classification_distance.png",
+                                      plot_nodes=True, node_scaling='classification', classification=node_roles)
+        if False:
+            node_roles = find_node_roles(transit_graph.graph, attribute='weight')
+            transit_graph.draw_map("Data/Images/NodeClassification/hcm_transit_graph_node_classification_weight.png",
+                                   plot_nodes=True, node_scaling='classification', classification=node_roles)
+            node_roles = find_node_roles(transit_graph.graph, attribute='duration_seconds')
+            transit_graph.draw_map("Data/Images/NodeClassification/hcm_transit_graph_node_classification_duration.png",
+                                   plot_nodes=True, node_scaling='classification', classification=node_roles)
+            node_roles = find_node_roles(transit_graph.graph, attribute='distance_meters')
+            transit_graph.draw_map("Data/Images/NodeClassification/hcm_transit_graph_node_classification_distance.png",
+                                   plot_nodes=True, node_scaling='classification', classification=node_roles)
+        if False:
+            node_roles = find_node_roles(walking_graph.graph, attribute='weight')
+            walking_graph.draw_map("Data/Images/NodeClassification/hcm_walking_graph_node_classification_weight.png",
+                                   plot_nodes=True, node_scaling='classification', classification=node_roles)
+            node_roles = find_node_roles(walking_graph.graph, attribute='duration_seconds')
+            walking_graph.draw_map("Data/Images/NodeClassification/hcm_walking_graph_node_classification_duration.png",
+                                   plot_nodes=True, node_scaling='classification', classification=node_roles)
+            node_roles = find_node_roles(walking_graph.graph, attribute='distance_meters')
+            walking_graph.draw_map("Data/Images/NodeClassification/hcm_walking_graph_node_classification_distance.png",
+                                   plot_nodes=True, node_scaling='classification', classification=node_roles)
+
+    if False:
+        public_transport = PublicTransport(FULL_GRAPH).graph
+        transit_graph = PublicTransport(TRANSIT_GRAPH).graph
+        walking_graph = PublicTransport(WALKING_GRAPH).graph
+
+        for node in transit_graph.nodes():
+            if transit_graph.degree(node) == 0:
+                transit_graph.remove_node(node)
+        for node in walking_graph.nodes():
+            if walking_graph.degree(node) == 0:
+                walking_graph.remove_node(node)
+
+        # Get edge list to run node2vec
+        if False:
+            nx.write_edgelist(public_transport, "Data/Graphs/hcm_full_graph.edgelist")
+            nx.write_edgelist(transit_graph, "Data/Graphs/hcm_transit_graph.edgelist")
+            nx.write_edgelist(walking_graph, "Data/Graphs/hcm_walking_graph.edgelist")
+
+        # Generate embeddings
+        if False:
+            p, q = 0.1, 10
+            os.system(
+                "python node2vec/src/main.py --input Data/Graphs/hcm_full_graph.edgelist --output Data/Graphs/hcm_full_graph.emb --walk-length 40 --num-walks 100 --p %s --q %s" % (
+                    str(p), str(q)))
+            os.system(
+                "python node2vec/src/main.py --input Data/Graphs/hcm_transit_graph.edgelist --output Data/Graphs/hcm_transit_graph.emb --walk-length 40 --num-walks 100 --p %s --q %s" % (
+                    str(p), str(q)))
+            os.system(
+                "python node2vec/src/main.py --input Data/Graphs/hcm_walking_graph.edgelist --output Data/Graphs/hcm_walking_graph.emb --walk-length 40 --num-walks 100 --p %s --q %s" % (
+                    str(p), str(q)))
+
+        def read_emb(file_path):
+            emb = {}
+            with open(file_path) as f:
+                for i, line in enumerate(f):
+                    L = deque(line.split())
+                    if i == 0:
+                        continue
+                    nid = int(L.popleft())
+                    L = np.asarray(L)
+                    emb[nid] = np.asarray(list(map(float, L)))
+            return emb
+
+        # Load embeddings
+        if True:
+            emb_all = read_emb("Data/Graphs/hcm_full_graph.emb")
+            emb_walking = read_emb("Data/Graphs/hcm_walking_graph.emb")
+            emb_transit = read_emb("Data/Graphs/hcm_transit_graph.emb")
+
+        def run_kmeans(k, emb):
+            input_array = np.zeros((len(emb), emb[list(emb.keys())[0]].shape[0]))
+            for i, key in enumerate(emb.keys()):
+                input_array[i] = emb[key]
+            print(input_array.shape)
+            output = KMeans(n_clusters=k, random_state=1).fit(input_array).labels_
+            clusters = {}
+            for i, key in enumerate(emb.keys()):
+                clusters[key] = output[i]
+            return clusters
+
+        # Run kmeans
+        clusters_all = run_kmeans(5, emb_all)
+        clusters_walking = run_kmeans(5, emb_walking)
+        clusters_transit = run_kmeans(5, emb_transit)
+
+        # Plot
+        if False:
+            public_transport_ = PublicTransport(FULL_GRAPH)
+            transit_graph_ = PublicTransport(TRANSIT_GRAPH)
+            walking_graph_ = PublicTransport(WALKING_GRAPH)
+            public_transport_.draw_map("Data/Images/NodeCluster/hcm_full_graph_cluster.png", plot_nodes=True,
+                                       node_scaling='classification', classification=clusters_all)
+            transit_graph_.draw_map("Data/Images/NodeCluster/hcm_transit_graph_cluster.png", plot_nodes=True,
+                                    node_scaling='classification', classification=clusters_transit)
+            walking_graph_.draw_map("Data/Images/NodeCluster/hcm_walking_graph_cluster.png", plot_nodes=True,
+                                    node_scaling='classification', classification=clusters_walking)
+
+        # Compute average weight of edges in each cluster
+        averages_time = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
+        averages_distance = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
+        for cluster in averages_time.keys():
+            count, avg_time, avg_distance = 0, 0, 0
+            for edge in walking_graph.edges():
+                if clusters_walking[int(edge[0])] == clusters_walking[int(edge[1])] == cluster:
+                    avg_time += walking_graph.get_edge_data(edge[0], edge[1])['duration_seconds']
+                    avg_distance += walking_graph.get_edge_data(edge[0], edge[1])['distance_meters']
+                    count += 1
+            avg_time = avg_time / count
+            avg_distance = avg_distance / count
+            averages_time[cluster] = avg_time / 60.0
+            averages_distance[cluster] = avg_distance
+
+        # Print
+        for key, value in averages_time.items():
+            print('Num: {0}, Color: {1}, Avg Duration: {2:8.3f} minutes, Avg Distance: {3:8.3f} meters'
+                  .format(key, CLUSTER_COLORS[key], value, averages_distance[key]))
+
