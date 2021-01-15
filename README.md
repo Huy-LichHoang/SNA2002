@@ -23,3 +23,10 @@ Cluster walking:
 - Num: 3, Color: c, Avg Duration:   11.825 minutes, Avg Distance:  940.656 meters
 - Num: 4, Color: m, Avg Duration:   13.706 minutes, Avg Distance: 1077.490 meters
 
+Walkability:
+- Number 0 1422
+- Number 1 97
+- Number 2 23
+- Number 3 15
+- Number 4 10
+- Five largest connected component: 88.83%

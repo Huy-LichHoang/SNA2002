@@ -15,7 +15,7 @@ FULL_GRAPH = "Data/Graphs/hcm_full_graph.gml"
 WALKING_GRAPH = "Data/Graphs/hcm_walking_graph.gml"
 TRANSIT_GRAPH = "Data/Graphs/hcm_transit_graph.gml"
 
-CLUSTER_COLORS = ['r', 'g', 'b', 'c', 'm']
+CLUSTER_COLORS = ['r', 'g', 'b', 'c', 'm', 'None']
 
 
 class PublicTransport(object):
@@ -274,7 +274,10 @@ class PublicTransport(object):
                     degree = centrality[node]
                 # Use node classification
                 elif node_scaling == 'classification':
-                    degree = classification[int(node)]
+                    try:
+                        degree = classification[int(node)]
+                    except:
+                        degree = classification[node]
                 # Append to degrees list
                 degrees.append(degree)
 
@@ -496,4 +499,33 @@ if __name__ == "__main__":
         for key, value in averages_time.items():
             print('Num: {0}, Color: {1}, Avg Duration: {2:8.3f} minutes, Avg Distance: {3:8.3f} meters'
                   .format(key, CLUSTER_COLORS[key], value, averages_distance[key]))
+
+    if False:
+        public_transport = PublicTransport(FULL_GRAPH)
+        print(reachability(public_transport.graph))
+
+    if True:
+        walking_graph = PublicTransport(WALKING_GRAPH)
+        cc = walkability(walking_graph.graph, 5)
+
+        count = 0
+        for i, component in enumerate(cc):
+            count += len(component)
+            print("Number", i, len(component))
+        print("Five largest connected component: {0:5.2f}%".format(count / walking_graph.graph.number_of_nodes() * 100))
+
+        def find_node_in_cc(node, cc):
+            for i, component in enumerate(cc):
+                if node in component: return i + 1
+            return 0
+
+        classification = {}
+        for node in walking_graph.graph.nodes():
+            classification[node] = find_node_in_cc(node, cc)
+
+        walking_graph.draw_map("Data/Images/Walkability/hcm_walking_graph_walkability.png",
+                               plot_nodes=True, node_scaling='classification', classification=classification)
+
+
+
 

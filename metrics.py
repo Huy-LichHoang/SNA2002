@@ -57,3 +57,10 @@ def find_clusters(X, n_clusters, seed=2):
     return centers, labels
 
 
+def reachability(G: nx.Graph):
+    return nx.floyd_warshall(G, 'duration_seconds')
+
+
+def walkability(G: nx.Graph, n):
+    return sorted(nx.connected_components(G), key=len, reverse=True)[:n]
+
