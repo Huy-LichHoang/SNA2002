@@ -5,6 +5,8 @@
 
 Data Geo lấy từ trang: http://maps.vietbando.com/maps/
 
+Link file google_response_data.pkl: https://studenthcmusedu-my.sharepoint.com/:u:/g/personal/1712471_student_hcmus_edu_vn/ESxDByKNGkdOrz6PriSF5MgB8uxPXYFZnWAou1-cBzctWg?e=ik6E9o
+
 Distance graph: 294 nodes, 43071 edges\
 Node attr: lat_long\
 Edge attr: distance between 2 nodes
